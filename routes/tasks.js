@@ -50,18 +50,23 @@ router.post('/', async (req, res) => {
 router.put('/:taskId', async (req, res) => {
   try {
     const taskId = req.params.taskId;
-    const { error } = taskValidation(req.body);
-    if(error) return res.status(400).send(error.details[0].message);
 
-    const task = await Task.findOne({_id: req.params.taskId, status: { $ne: 'deleted'}});
+    const { title, description, status } = req.body
+    if (status) {
+      assert(['pending', 'completed'].includes(status), 'Invalid status')
+    }
+
+    const task = await Task.findOne({_id: req.params.taskId, status: { $ne: 'deleted' }});
     assert(task, 'Task not found')
 
-    const updatedTask = await Task.updateOne({_id: taskId},
-      {
-        title: req.body.title,
-        description: req.body.description,
-      }
-    );
+    const updateObject = {
+      title,
+      description,
+      status
+    }
+    Object.keys(updateObject).forEach(key => !updateObject[key] && delete updateObject[key])
+
+    const updatedTask = await Task.updateOne({_id: taskId}, updateObject);
     res.send({ "Response sent": `${updatedTask.nModified} document(s) modified`});
   }catch (e) {
     console.log(e)
